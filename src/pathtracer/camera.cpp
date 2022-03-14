@@ -194,9 +194,12 @@ Ray Camera::generate_ray(double x, double y) const {
   // canonical sensor plane one unit away from the pinhole.
   // Note: hFov and vFov are in degrees.
   //
-
-
-  return Ray(pos, Vector3D(0, 0, -1));
+  double init_x = tan(radians(hFov)) * 0.5, init_y = tan(radians(vFov)) * 0.5;
+  Vector3D bot_left = Vector3D(-init_x, -init_y, -1), top_right = Vector3D(init_x, init_y, -1);
+  double this_x = bot_left.x + (top_right.x - bot_left.x) * x, this_y = bot_left.y + (top_right.y - bot_left.y) * y, this_z = -1;
+  Vector3D start = this->pos, mag = this->c2w * Vector3D(this_x, this_y, this_z);
+  mag.normalize();
+  return Ray(start, mag, this->fClip);
 
 }
 
