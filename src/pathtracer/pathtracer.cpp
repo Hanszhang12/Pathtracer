@@ -184,12 +184,42 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
 
   int num_samples = ns_aa;          // total samples to evaluate
   Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
+  // sampleBuffer.update_pixel(Vector3D(0.2, 1.0, 0.8), x, y);
+  // sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
 
+  double w = this->sampleBuffer.w, h = this->sampleBuffer.h;
+  double sig = 0, sig_2 = 0;
+  int samp = 0;
+  Vector3D fin = Vector3D();
 
-  sampleBuffer.update_pixel(Vector3D(0.2, 1.0, 0.8), x, y);
-  sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
-
-
+  if (num_samples == 1) {
+    Ray ray = this->camera->generate_ray((x + 0.5) / w, (y + 0.5) / h);
+    ray.depth = this->max_ray_depth;
+    fin += est_radiance_global_illumination(ray);
+    samp += 1;
+  }
+  else {
+    int samp;
+    for (samp = 0; samp < num_samples; samp++) {
+      //&& samp in following if statement?
+      if (samp % samplesPerBatch == 0 && samp > 0) {
+         //double mean = sig / double(i), var = (sig_2 - (sig * sig) / double(i)) / (i - 1.0);
+         if (1.96 * sqrt((sig_2 - (sig * sig) / double(samp)) / (samp - 1.0) / double(samp)) <= maxTolerance * sig / double(samp)) {
+           break;
+         }
+      }
+      Vector2D s_v = this->gridSampler->get_sample();
+      Ray s_r = this->camera->generate_ray((x + s_v.x) / w, (y + s_v.y) / h);
+      s_r.depth = this->max_ray_depth;
+      Vector3D curr = this->est_radiance_global_illumination(s_r);
+      fin += curr;
+      sig += curr.illum();
+      sig_2 += (curr.illum() * curr.illum());
+    }
+  }
+  fin = fin / (double) samp;
+  sampleBuffer.update_pixel(fin, x, y);
+  sampleCountBuffer[x + y * w] = samp;
 }
 
 void PathTracer::autofocus(Vector2D loc) {
