@@ -11,12 +11,26 @@ bool BBox::intersect(const Ray& r, double& t0, double& t1) const {
 
   // TODO (Part 2.2):
   // Implement ray - bounding box intersection test
-  // If the ray intersected the bouding box within the range given by
+  // If the ray intersected the bounding box within the range given by
   // t0, t1, update t0 and t1 with the new intersection times.
+  if (t0 > t1) {
+    return false;
+  }
+
+  Vector3D normal = min;
+  normal.normalize();
+
+  double new_t0 = ((min - r.o) * normal)[0]/(r.d * normal)[0];
+  double new_t1 = ((max - r.o) * normal)[0]/(r.d * normal)[0];
 
 
-  return true;
-
+  if (t0 <= new_t0 && t1 >= new_t1){
+    t0 = new_t0;
+    t1 = new_t1;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void BBox::draw(Color c, float alpha) const {
