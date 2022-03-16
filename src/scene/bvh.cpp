@@ -58,6 +58,18 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   // single leaf node (which is also the root) that encloses all the
   // primitives.
 
+  // BBox bbox;
+  //
+  // for (auto p = start; p != end; p++) {
+  //   BBox bb = (*p)->get_bbox();
+  //   bbox.expand(bb);
+  // }
+  //
+  // BVHNode *node = new BVHNode(bbox);
+  // node->start = start;
+  // node->end = end;
+  //
+  // return node;
 
   BBox bbox;
   int primitive_count = 0;
@@ -68,19 +80,26 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   }
 
   BVHNode *node = new BVHNode(bbox);
-  // node->start = start;
-  // node->end = end;
-  if (primitive_count < max_leaf_size) {
+  node->start = start;
+  node->end = end;
+  if (primitive_count <= max_leaf_size) {
     node->start = start;
     node->end = end;
   } else {
     //find the split start + (some integer)
-    // Vector3D centroid = bbox.centroid();
+    // double diff = ((bbox.max - bbox.min)/2).x;
+    // std::vector<Primitive *>::iterator copied_vector;
+    // std::copy(start, end, copied_vector);
+
+    // std::vector<Primitive *>::iterator middle = std::partition(start, end, [=](Primitive *em){ return em->get_bbox().centroid().x < diff; });
+
+
     node->l = construct_bvh(start, start + primitive_count/2, max_leaf_size);
     node->r = construct_bvh(start + primitive_count/2, end, max_leaf_size);
   }
   return node;
 }
+
 
 bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // TODO (Part 2.3):
@@ -90,10 +109,9 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // a hit, it doesn't actually have to find the closest hit.
 
   for (auto p : primitives) {
-    total_isects++;
-    BBox bb = p->get_bbox();
-    if (bb.intersect(ray, ray.min_t, ray.max_t))
-      return true;
+  total_isects++;
+  if (p->has_intersection(ray))
+    return true;
   }
   return false;
 
@@ -102,21 +120,31 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
 bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
+  // double t0 = ray.min_t;
+  // double t1 = ray.max_t;
 
-  if (!has_intersection(ray, node)) {
+  if (!(node->bb.intersect(ray, ray.min_t, ray.max_t))) {
     return false;
   }
+
+  bool hit1 = false;
+  bool hit2 = false;
+
   if (node->isLeaf()) {
+    bool hit3 = false;
     for (auto p = node->start; p != node->end; p++) {
-      BBox bb = (*p)->get_bbox();
-      if (bb.intersect(ray, ray.min_t, ray.max_t)) {
-        i->primitive = *p;
+      bool result = (*p)->intersect(ray, i);
+      hit3 = hit3 || result;
+      if (result) {
+        total_isects++;
       }
     }
-    return true;
+    return hit3;
   }
-  bool hit1 = intersect(ray, i, node->l);
-  bool hit2 = intersect(ray, i, node->r);
+  Intersection *i_new1 = i;
+  hit1 = intersect(ray, i_new1, node->l);
+  hit2 = intersect(ray, i_new1, node->r);
+  *i = *i_new1;
 
   return hit1 || hit2;
 
