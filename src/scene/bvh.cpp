@@ -58,19 +58,6 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   // single leaf node (which is also the root) that encloses all the
   // primitives.
 
-  // BBox bbox;
-  //
-  // for (auto p = start; p != end; p++) {
-  //   BBox bb = (*p)->get_bbox();
-  //   bbox.expand(bb);
-  // }
-  //
-  // BVHNode *node = new BVHNode(bbox);
-  // node->start = start;
-  // node->end = end;
-  //
-  // return node;
-
   BBox bbox;
   int primitive_count = 0;
   for (auto p = start; p != end; p++) {
@@ -86,14 +73,6 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
     node->start = start;
     node->end = end;
   } else {
-    //find the split start + (some integer)
-    // double diff = ((bbox.max - bbox.min)/2).x;
-    // std::vector<Primitive *>::iterator copied_vector;
-    // std::copy(start, end, copied_vector);
-
-    // std::vector<Primitive *>::iterator middle = std::partition(start, end, [=](Primitive *em){ return em->get_bbox().centroid().x < diff; });
-
-
     node->l = construct_bvh(start, start + primitive_count/2, max_leaf_size);
     node->r = construct_bvh(start + primitive_count/2, end, max_leaf_size);
   }
@@ -120,8 +99,6 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
 bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
-  // double t0 = ray.min_t;
-  // double t1 = ray.max_t;
 
   if (!(node->bb.intersect(ray, ray.min_t, ray.max_t))) {
     return false;
@@ -141,19 +118,10 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
     }
     return hit3;
   }
-  Intersection *i_new1 = i;
-  hit1 = intersect(ray, i_new1, node->l);
-  hit2 = intersect(ray, i_new1, node->r);
-  *i = *i_new1;
+  hit1 = intersect(ray, i, node->l);
+  hit2 = intersect(ray, i, node->r);
 
   return hit1 || hit2;
-
-  // bool hit = false;
-  // for (auto p : primitives) {
-  //   total_isects++;
-  //   hit = p->intersect(ray, i) || hit;
-  // }
-  // return hit;
 
 
 }
