@@ -72,6 +72,8 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   if (primitive_count <= max_leaf_size) {
     node->start = start;
     node->end = end;
+    node->l = NULL;
+    node->r = NULL;
   } else {
     node->l = construct_bvh(start, start + primitive_count/2, max_leaf_size);
     node->r = construct_bvh(start + primitive_count/2, end, max_leaf_size);
@@ -99,7 +101,9 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
 bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
-
+  if (node == NULL) {
+    return false;
+  }
   if (!(node->bb.intersect(ray, ray.min_t, ray.max_t))) {
     return false;
   }
@@ -118,8 +122,14 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
     }
     return hit3;
   }
-  hit1 = intersect(ray, i, node->l);
-  hit2 = intersect(ray, i, node->r);
+  if (node->l) {
+    hit1 = intersect(ray, i, node->l);
+  }
+  if (node->r) {
+    hit2 = intersect(ray, i, node->r);
+  }
+  // hit1 = intersect(ray, i, node->l);
+  // hit2 = intersect(ray, i, node->r);
 
   return hit1 || hit2;
 
